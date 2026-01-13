@@ -210,7 +210,7 @@ JOIN car_park_operator cpot on cpot.id = cp.car_park_operator_id
 JOIN evcharging evc on pt.transaction_id = evc.id
 JOIN cp_indent ci on evc.order_id = ci.session_id
 
--- EV energy in (kWh) charged by month
+-- Average Transacted Price by month
 select (SUM(pt.tran_amount)/(count(*))), DATE_FORMAT(pt.exit_date_time, '%Y-%m')
 from parking_transaction pt
 JOIN car_park cp ON pt.car_park_id = cp.id
@@ -221,6 +221,47 @@ where exit_date_time >= '2024-12-31 16:00:00' and exit_date_time <= '2025-12-31 
 and payment_status = 1
 and parking_type_id = 5
 group by DATE_FORMAT(exit_date_time, '%Y-%m')
+
+-- Average Charge Price by month
+select (SUM(pt.tran_amount)/SUM(ci.power)), DATE_FORMAT(pt.exit_date_time, '%Y-%m')
+from parking_transaction pt
+JOIN car_park cp ON pt.car_park_id = cp.id
+JOIN car_park_operator cpot on cpot.id = cp.car_park_operator_id
+JOIN evcharging evc on pt.transaction_id = evc.id
+JOIN cp_indent ci on evc.order_id = ci.session_id
+where exit_date_time >= '2024-12-31 16:00:00' and exit_date_time <= '2025-12-31 15:59:59'
+and payment_status = 1
+and parking_type_id = 5
+group by DATE_FORMAT(exit_date_time, '%Y-%m')
+
+--
+SELECT
+    SUM(pt.tran_amount) / SUM(ci.power) AS amount_per_power,
+    DATE_FORMAT(pt.exit_date_time, '%Y-%m') AS month
+FROM parking_transaction pt
+JOIN car_park cp ON pt.car_park_id = cp.id
+JOIN car_park_operator cpot ON cpot.id = cp.car_park_operator_id
+JOIN evcharging evc ON pt.transaction_id = evc.id
+JOIN cp_indent ci ON evc.order_id = ci.session_id
+WHERE pt.exit_date_time BETWEEN '2024-12-31 16:00:00'
+                             AND '2025-12-31 15:59:59'
+  AND pt.payment_status = 1
+  AND pt.parking_type_id = 5
+GROUP BY DATE_FORMAT(pt.exit_date_time, '%Y-%m');
+
+-- Payment by Region
+select cp.name, cp.longitude, cp.latitude
+FROM parking_transaction pt
+JOIN car_park cp ON pt.car_park_id = cp.id
+
+-- Payment by Region
+select sum(pt.tran_amount), cp.name, cp.longitude, cp.latitude
+from parking_transaction pt
+JOIN car_park cp ON pt.car_park_id = cp.id
+where exit_date_time >= '2024-12-31 16:00:00' and exit_date_time <= '2025-12-31 15:59:59'
+and payment_status = 1
+and parking_type_id = 5
+group by cp.name
 
 select * from parking_transaction limit 1
 
