@@ -263,6 +263,16 @@ and payment_status = 1
 and parking_type_id = 5
 group by cp.name
 
+-- ***CHECK THIS AGAIN
+-- Transaction amount of newly added carpark order by trans amt
+-- 17 carpark tran amount = 0 or testing
+SELECT cp.name, SUM(pt.tran_amount) AS total_tran_amount, SUM(pt.payment_amount) AS total_payment_amount
+FROM parking_transaction pt
+JOIN car_park cp ON pt.car_park_id = cp.id
+WHERE pt.car_park_id IN (SELECT id FROM car_park WHERE id IN (SELECT DISTINCT car_park_id FROM parking_transaction WHERE exit_date_time >= '2024-12-31 16:00:00' AND exit_date_time <= '2025-12-31 16:00:00')
+AND name NOT IN (SELECT name FROM car_park WHERE id IN (SELECT DISTINCT car_park_id FROM parking_transaction WHERE exit_date_time >= '2023-12-31 16:00:00' AND exit_date_time <= '2024-12-31 15:59:59')))
+GROUP BY cp.name ORDER BY total_tran_amount DESC;
+
 -- Payment by Region
 SELECT CASE
 WHEN cp.name = '(Private) Kovan Residences' THEN 'North-East'
