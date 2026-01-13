@@ -130,13 +130,98 @@ select sum(amount) from season_list
 where start_date >= '2025-01-01' and end_date <= '2025-12-31'
 order by end_date asc
 
--- Smart parking Prepaid $320,830
-select SUM(QUANTITY*UNIT_PRICE) from company_invoice_item where invoice_date >= '2025-01-01' and invoice_date <= '2025-12-31' AND status = 'ISSUED'
+-- *** PREPAID $202,357
+select sum(quantity*unit_price) from company_invoice_item where type = 'PREPAID' and invoice_date >= '2025-01-01' and invoice_date <= '2025-12-31'
+-- select sum(total_amount) from company_invoice where issued_date >= '2025-01-01' and issued_date <= '2025-12-31'
 
-select sum(total_amount) from company_invoice where issued_date >= '2025-01-01' and issued_date <= '2025-12-31'
+-- Prepaid Transactions type = 'PREPAID' or status = 'UNISSUED'     type = 'SEASON' (status = 'ISSUED')
+select * from company_invoice_item where type = 'PREPAID' AND invoice_date >= '2025-01-01' and invoice_date <= '2025-12-31'
 
--- Prepaid breakdown company_invoice
--- select * from company_invoice where issued_date >= '2025-01-01' and issued_date <= '2025-12-31' ORDER BY issued_date desc
-select * from company_invoice_item where invoice_date >= '2025-01-01' and invoice_date <= '2025-12-31' AND status = 'ISSUED' ORDER BY invoice_date desc, company_id
+-- Smart Parking Performance by Month 
+-- Smart Parking – Hourly 
+SELECT DATE_FORMAT(exit_date_time, '%Y-%m') AS month, SUM(payment_amount) AS amount, cp.name, pt.payment_method
+CASE WHEN payment_method = 2 THEN 'EPS' WHEN payment_method = 3 THEN 'CEPAS (TBD)' WHEN payment_method = 5 THEN 'Pending' WHEN payment_method = 6 THEN 'Stripe' ELSE 'UNKNOWN' END as payment_method_label
+FROM parking_transaction pt
+JOIN car_park cp on pt.car_park_id = cp.id
+WHERE exit_date_time >= '2024-12-31 16:00:00' AND exit_date_time <= '2025-12-31 15:59:59'
+AND parking_type_id = 2 AND payment_status = 1
+GROUP BY DATE_FORMAT(exit_date_time, '%Y-%m'), cp.name
 
-select * from season_list
+ -- Smart Parking – Season
+SELECT DATE_FORMAT(start_date, '%Y-%m') AS month, SUM(amount) AS amount
+FROM season_list
+WHERE start_date >= '2025-01-01' AND end_date <= '2025-12-31'
+GROUP BY DATE_FORMAT(start_date, '%Y-%m')
+
+-- Smart Parking - Prepaid
+SELECT DATE_FORMAT(invoice_date, '%Y-%m') AS month, SUM(quantity * unit_price) AS amount
+FROM company_invoice_item
+WHERE type = 'PREPAID'
+AND invoice_date BETWEEN '2025-01-01' AND '2025-12-31'
+GROUP BY DATE_FORMAT(invoice_date, '%Y-%m')
+
+-- Payment Methods Hourly
+SELECT sum(tran_amount/100),
+CASE WHEN payment_method = 2 THEN 'EPS' WHEN payment_method = 3 THEN 'CEPAS (TBD)' WHEN payment_method = 5 THEN 'Pending' WHEN payment_method = 6 THEN 'Stripe' WHEN payment_method = 10 THEN 'Prepaid' ELSE 'UNKNOWN' END as payment_method_label
+FROM parking_transaction pt
+WHERE exit_date_time >= '2024-12-31 16:00:00' AND exit_date_time <= '2025-12-31 15:59:59'
+AND payment_status = 1
+AND parking_type_id = 2
+and payment_method != 1
+GROUP BY payment_method
+
+
+-- 'Stripe' 'InvoicePayment' 'Shared Season' 'Temporary CoV'
+select distinct(payment_type) from season_list
+
+-- Payment type for season_list 
+-- InvoicePayment 281,475 
+-- Strip 2,915,384
+select payment_type, sum(amount) from season_list 
+WHERE start_date >= '2025-01-01' AND end_date <= '2025-12-31'
+group by payment_type
+
+SELECT DATE_FORMAT(start_date, '%Y-%m') AS month, SUM(amount) AS amount
+FROM season_list
+
+-- payment  method season
+SELECT payment_type, SUM(amount/100) AS amount
+FROM season_list
+WHERE start_date >= '2025-01-01' AND end_date <= '2025-12-31'
+GROUP BY payment_type
+
+select * from payment_type
+
+-- EV Charging Tran Amt 1,626,804
+select count(*), DATE_FORMAT(exit_date_time, '%Y-%m')
+from parking_transaction 
+where exit_date_time >= '2024-12-31 16:00:00' and exit_date_time <= '2025-12-31 15:59:59'
+and payment_status = 1
+and parking_type_id = 5
+group by DATE_FORMAT(exit_date_time, '%Y-%m')
+
+select * from parking_transaction limit 1
+JOIN cp_indent ci on evc.order_id = ci.session_id
+
+select * from cp_indent where power is not null
+
+JOIN car_park cp ON pt.car_park_id = cp.id
+JOIN car_park_operator cpot on cpot.id = cp.car_park_operator_id
+JOIN evcharging evc on pt.transaction_id = evc.id
+JOIN cp_indent ci on evc.order_id = ci.session_id
+
+-- EV energy in (kWh) charged by month
+select (SUM(pt.tran_amount)/(count(*))), DATE_FORMAT(pt.exit_date_time, '%Y-%m')
+from parking_transaction pt
+JOIN car_park cp ON pt.car_park_id = cp.id
+JOIN car_park_operator cpot on cpot.id = cp.car_park_operator_id
+JOIN evcharging evc on pt.transaction_id = evc.id
+JOIN cp_indent ci on evc.order_id = ci.session_id
+where exit_date_time >= '2024-12-31 16:00:00' and exit_date_time <= '2025-12-31 15:59:59'
+and payment_status = 1
+and parking_type_id = 5
+group by DATE_FORMAT(exit_date_time, '%Y-%m')
+
+select * from parking_transaction limit 1
+
+
