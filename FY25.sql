@@ -255,13 +255,32 @@ FROM parking_transaction pt
 JOIN car_park cp ON pt.car_park_id = cp.id
 
 -- Payment by Region
-select sum(pt.tran_amount), cp.name, cp.longitude, cp.latitude
+select cp.name, sum(pt.tran_amount), cp.longitude, cp.latitude
 from parking_transaction pt
 JOIN car_park cp ON pt.car_park_id = cp.id
 where exit_date_time >= '2024-12-31 16:00:00' and exit_date_time <= '2025-12-31 15:59:59'
 and payment_status = 1
 and parking_type_id = 5
 group by cp.name
+
+-- Payment by Region
+SELECT CASE
+WHEN cp.name = '(Private) Kovan Residences' THEN 'North-East'
+WHEN cp.name = 'AIA Tower' THEN 'Central'
+WHEN cp.latitude >= 1.40 THEN 'North'
+WHEN cp.longitude >= 103.88 AND cp.latitude >= 1.34 THEN 'North-East'
+WHEN cp.longitude >= 103.90 AND cp.latitude < 1.34 THEN 'East'
+WHEN cp.longitude < 103.78 THEN 'West'
+ELSE 'Central' END AS region,
+cp.name, SUM(pt.tran_amount) AS total_tran_amount, cp.longitude, cp.latitude
+FROM parking_transaction pt
+JOIN car_park cp ON pt.car_park_id = cp.id
+WHERE exit_date_time >= '2024-12-31 16:00:00' AND exit_date_time <= '2025-12-31 15:59:59'
+AND payment_status = 1 AND parking_type_id = 5
+GROUP BY region
+ORDER BY CASE region WHEN 'North' THEN 1 WHEN 'North-East' THEN 2 WHEN 'East' THEN 3 WHEN 'Central' THEN 4
+WHEN 'West' THEN 5 ELSE 6 END, total_tran_amount DESC;
+
 
 select * from parking_transaction limit 1
 
