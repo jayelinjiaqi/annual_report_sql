@@ -1,0 +1,65 @@
+	month	total_amount
+	2024-12	569.1200
+	2025-01	274113.7500
+	2025-02	386305.4300
+	2025-03	377756.8500
+	2025-04	350585.1200
+	2025-05	388493.8700
+	2025-06	385362.3000
+	2025-07	507448.3900
+	2025-08	482464.2300
+	2025-09	505869.1600
+	2025-10	548211.3300
+	2025-11	483122.4000
+	2025-12	400832.7700
+
+  query:-- hourly by month 
+SELECT
+    DATE_FORMAT(exit_date_time, '%Y-%m') AS month,
+    SUM(payment_amount) / 100 AS total_amount
+FROM (
+    SELECT exit_date_time, payment_amount
+    FROM parking_transaction
+    WHERE exit_date_time BETWEEN '2024-12-31 16:00:00'
+                             AND '2025-12-31 15:59:59'
+      AND parking_type_id = 2
+      AND payment_status = 1
+
+    UNION ALL
+
+    SELECT exit_date_time, payment_amount
+    FROM parking_transaction_2025_Jun_2025_Oct_ndc
+    WHERE exit_date_time BETWEEN '2024-12-31 16:00:00'
+                             AND '2025-12-31 15:59:59'
+      AND parking_type_id = 2
+      AND payment_status = 1
+
+    UNION ALL
+
+    SELECT exit_date_time, payment_amount
+    FROM parking_transaction_2025_Jan_2025_Mar_ndc
+    WHERE exit_date_time BETWEEN '2024-12-31 16:00:00'
+                             AND '2025-12-31 15:59:59'
+      AND parking_type_id = 2
+      AND payment_status = 1
+
+    UNION ALL
+
+    SELECT exit_date_time, payment_amount
+    FROM parking_transaction_2025_Apr_2025_May_ndc
+    WHERE exit_date_time BETWEEN '2024-12-31 16:00:00'
+                             AND '2025-12-31 15:59:59'
+      AND parking_type_id = 2
+      AND payment_status = 1
+
+    UNION ALL
+
+    SELECT exit_date_time, payment_amount
+    FROM parking_transaction_2024_Oct_2024_Dec_ndc
+    WHERE exit_date_time BETWEEN '2024-12-31 16:00:00'
+                             AND '2025-12-31 15:59:59'
+      AND parking_type_id = 2
+      AND payment_status = 1
+) t
+GROUP BY DATE_FORMAT(exit_date_time, '%Y-%m')
+ORDER BY month;
